@@ -339,18 +339,29 @@ detect_docker_image_source() {
 }
 
 choose_docker_image_source() {
-    local source="official"
+    local default_source=${1:-official}
+    local source="$default_source"
     printf '%s\n' "  请选择 Docker 镜像源:" >&2
-    printf '%s\n' "    [1] 官方 Docker Hub" >&2
-    printf '%s\n' "    [2] docker.1panel.live" >&2
-    printf '\n' >&2
-    read -p "  请输入选项 [1-2，默认1]: " source_choice
-    case "${source_choice:-1}" in
+    if [ "$default_source" = "1panel" ]; then
+        printf '%s\n' "    [1] 官方 Docker Hub" >&2
+        printf '%s\n' "    [2] docker.1panel.live (默认)" >&2
+        printf '\n' >&2
+        read -p "  请输入选项 [1-2，默认2]: " source_choice
+    else
+        printf '%s\n' "    [1] 官方 Docker Hub (默认)" >&2
+        printf '%s\n' "    [2] docker.1panel.live" >&2
+        printf '\n' >&2
+        read -p "  请输入选项 [1-2，默认1]: " source_choice
+    fi
+    case "$source_choice" in
         2)
             source="1panel"
             ;;
-        *)
+        1)
             source="official"
+            ;;
+        *)
+            source="$default_source"
             ;;
     esac
     echo "$source"
@@ -909,8 +920,11 @@ install_docker() {
 
     local http_port="$default_port"
     local secret_key="$default_key"
+    local image_source_default
+    image_source_default=$(detect_docker_image_source)
     local image_source
-    image_source=$(choose_docker_image_source)
+    printf '\n'
+    image_source="$(choose_docker_image_source "$image_source_default")"
     local image_ref
     image_ref=$(docker_image_for_source "$image_source")
 
