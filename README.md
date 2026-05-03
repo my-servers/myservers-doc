@@ -13,7 +13,7 @@ curl -sL https://myservers-api.codelover.us.kg/install -o install.sh && chmod +x
 安装向导会自动检测当前环境，并引导你选择：
 
 - `npm` 安装：推荐，兼容性最好，后续升级也更直接
-- `Docker` 安装：适合 Linux 容器化部署场景
+- `Docker` 安装：支持 Linux 和 macOS，Linux 兼容性最佳
 
 ## 安装前准备
 
@@ -53,7 +53,7 @@ myservers -op=show_config -k 你的32位密钥
 
 ### 方式二：Docker 安装
 
-当前更适合 Linux 环境，安装向导会自动给出完整命令。
+支持 Linux 和 macOS。Linux 下会使用 host 网络模式；macOS 下会自动切换为 Docker Desktop 兼容的端口映射模式。
 
 如果你已经明确自己的部署方式，也可以直接参考向导中的 `docker run` 命令执行。
 
@@ -124,7 +124,7 @@ bash --version
 
 ### 3. Docker 模式不可用
 
-当前安装向导中的 Docker 方案面向 Linux，依赖 host 网络模式；macOS 和 Windows 更推荐走 `npm` 安装。
+当前安装向导中的 Docker 方案已支持 macOS，但由于 Docker Desktop 与 Linux 内核能力不同，部分宿主机系统信息能力会受限；若你更看重兼容性，macOS 和 Windows 仍更推荐走 `npm` 安装。
 
 ## 仓库内容
 

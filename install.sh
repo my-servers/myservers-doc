@@ -309,15 +309,24 @@ docker_run_command() {
     local secret_key=$2
     local http_port=$3
     local map_socket=$4
+    local platform=${5:-$(detect_platform)}
     local args=(
         docker run -d
         --name myservers
-        --network host
         --restart always
         --privileged
-        -v /proc:/proc
-        -v /var/run:/var/run
     )
+
+    if [ "$platform" = "linux" ]; then
+        args+=(
+            --network host
+            -v /proc:/proc
+            -v /var/run:/var/run
+        )
+    elif [ -n "$http_port" ]; then
+        args+=(-p "${http_port}:${http_port}")
+    fi
+
     if [ "$map_socket" = "true" ]; then
         args+=(-v /var/run/docker.sock:/var/run/docker.sock)
     fi
@@ -417,6 +426,8 @@ upgrade_docker_impl() {
     fi
     
     local data_dir=$(get_default_data_dir)
+    local platform=$(detect_platform)
+    local http_port="18612"
     
     print_info "停止旧容器..."
     docker rm -f myservers 2>/dev/null || true
@@ -426,16 +437,26 @@ upgrade_docker_impl() {
     local secret_key=""
     if [ -f "$data_dir/config/config.yaml" ]; then
         secret_key=$(grep -oE 'SecretKey:[[:space:]]+[a-fA-F0-9]+' "$data_dir/config/config.yaml" 2>/dev/null | awk '{print $2}' || echo "")
+        local existing_port
+        existing_port=$(read_config_http_port "$data_dir/config/config.yaml")
+        if [ -n "$existing_port" ]; then
+            http_port="$existing_port"
+        fi
     fi
     
     if [ -z "$secret_key" ]; then
         print_warning "未找到配置文件中的密钥，请手动重启容器"
         echo ""
         echo "  参考命令:"
-        echo "    docker run -d --name myservers --network host --restart always \\"
-        echo "      --privileged -v ~/.myservers/data:/app/data \\"
-        echo "      -v ~/.myservers/config:/app/config \\"
-        echo "      myservers/my_servers ./app -k 你的密钥"
+        if [ "$platform" = "linux" ]; then
+            echo "    docker run -d --name myservers --network host --restart always \\"
+            echo "      --privileged -v ~/.myservers:/root/.myservers \\"
+            echo "      myservers/my_servers ./app -k 你的密钥"
+        else
+            echo "    docker run -d --name myservers --restart always \\"
+            echo "      --privileged -p ${http_port}:${http_port} -v ~/.myservers:/root/.myservers \\"
+            echo "      myservers/my_servers ./app -k 你的密钥 -p ${http_port}"
+        fi
         echo ""
         return 0
     fi
@@ -446,18 +467,9 @@ upgrade_docker_impl() {
         print_info "检测到 Docker Socket，已映射到容器内"
     fi
 
-    docker run -d \
-        --name myservers \
-        --network host \
-        --restart always \
-        --privileged \
-        -v /proc:/proc \
-        -v /var/run:/var/run \
-        -v "$data_dir/data:/app/data" \
-        -v "$data_dir/config:/app/config" \
-        "${docker_sock_args[@]}" \
-        myservers/my_servers \
-        ./app -k "$secret_key"
+    local docker_command
+    docker_command=$(docker_run_command "$data_dir" "$secret_key" "$http_port" "$([ ${#docker_sock_args[@]} -gt 0 ] && echo true || echo false)" "$platform")
+    eval "$docker_command"
     
     print_success "Docker 升级完成!"
     echo ""
@@ -774,14 +786,23 @@ install_docker() {
     print_step "Docker 安装"
 
     local platform=$(detect_platform)
-    if [ "$platform" != "linux" ]; then
-        print_error "Docker 安装向导当前仅支持 Linux。"
+    if [ "$platform" != "linux" ] && [ "$platform" != "macos" ]; then
+        print_error "Docker 安装向导当前仅支持 Linux 和 macOS。"
         echo ""
-        echo "  原因: 当前 Docker 安装方案依赖 --network host 和 Linux 路径挂载。"
         echo "  在 $platform 上请优先使用 npm 安装。"
         echo ""
         read -p "  按回车返回..."
         return 1
+    fi
+
+    if [ "$platform" = "macos" ]; then
+        print_warning "macOS 将使用 Docker Desktop 兼容模式启动。"
+        echo ""
+        echo "  说明:"
+        echo "    - 使用端口映射，不使用 --network host"
+        echo "    - 不挂载宿主机 /proc，部分系统信息能力会受限"
+        echo "    - 更推荐 npm 安装；如你希望继续使用 Docker，可直接继续"
+        echo ""
     fi
 
     local default_home_dir="$HOME/.myservers"
@@ -876,7 +897,7 @@ install_docker() {
         print_info "使用数据目录: $default_host_dir"
     fi
 
-    local docker_command=$(docker_run_command "$host_data_dir" "$secret_key" "$http_port" "$map_docker_socket")
+    local docker_command=$(docker_run_command "$host_data_dir" "$secret_key" "$http_port" "$map_docker_socket" "$platform")
     local docker_show_config=$(docker_show_config_command "$host_data_dir" "$secret_key" "$http_port" "$map_docker_socket")
 
     echo ""
@@ -1165,10 +1186,10 @@ main() {
             echo "  [1] npm 安装 (未检测到npm)"
         fi
 
-        if $has_docker && [ "$(detect_platform)" = "linux" ]; then
+        if $has_docker && { [ "$(detect_platform)" = "linux" ] || [ "$(detect_platform)" = "macos" ]; }; then
             echo "  [2] Docker 安装"
         elif $has_docker; then
-            echo "  [2] Docker 安装 (当前仅 Linux 支持)"
+            echo "  [2] Docker 安装 (当前仅 Linux/macOS 支持)"
         else
             echo "  [2] Docker 安装 (未检测到Docker)"
         fi
