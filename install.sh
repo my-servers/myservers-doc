@@ -304,12 +304,65 @@ shell_join() {
     echo "$out"
 }
 
+docker_image_for_source() {
+    local source=${1:-official}
+    case "$source" in
+        1panel)
+            echo "docker.1panel.live/myservers/my_servers"
+            ;;
+        official|*)
+            echo "myservers/my_servers"
+            ;;
+    esac
+}
+
+detect_docker_image_source() {
+    local current_image=""
+    current_image=$(docker inspect -f '{{.Config.Image}}' myservers 2>/dev/null || true)
+    case "$current_image" in
+        docker.1panel.live/myservers/my_servers*)
+            echo "1panel"
+            return
+            ;;
+        myservers/my_servers*)
+            echo "official"
+            return
+            ;;
+    esac
+
+    if docker images docker.1panel.live/myservers/my_servers --format "{{.Repository}}" 2>/dev/null | head -1 | grep -q .; then
+        echo "1panel"
+        return
+    fi
+
+    echo "official"
+}
+
+choose_docker_image_source() {
+    local source="official"
+    printf '%s\n' "  请选择 Docker 镜像源:" >&2
+    printf '%s\n' "    [1] 官方 Docker Hub" >&2
+    printf '%s\n' "    [2] docker.1panel.live" >&2
+    printf '\n' >&2
+    read -p "  请输入选项 [1-2，默认1]: " source_choice
+    case "${source_choice:-1}" in
+        2)
+            source="1panel"
+            ;;
+        *)
+            source="official"
+            ;;
+    esac
+    echo "$source"
+}
+
 docker_run_command() {
     local host_data_dir=$1
     local secret_key=$2
     local http_port=$3
     local map_socket=$4
     local platform=${5:-$(detect_platform)}
+    local image_ref=${6:-$(docker_image_for_source official)}
     local args=(
         docker run -d
         --name myservers
@@ -332,7 +385,7 @@ docker_run_command() {
     fi
     args+=(
         -v "${host_data_dir}:/root/.myservers"
-        myservers/my_servers
+        "$image_ref"
         ./app
         -k "$secret_key"
     )
@@ -377,7 +430,8 @@ compare_versions() {
 }
 
 get_current_version_docker() {
-    local version=$(docker images myservers/my_servers --format "{{.Tag}}" 2>/dev/null | head -1)
+    local image_ref=${1:-$(docker_image_for_source "$(detect_docker_image_source)")}
+    local version=$(docker images "$image_ref" --format "{{.Tag}}" 2>/dev/null | head -1)
     if [ -n "$version" ]; then
         echo "$version"
     else
@@ -386,7 +440,8 @@ get_current_version_docker() {
 }
 
 get_latest_version_docker() {
-    local version=$(docker manifest inspect myservers/my_servers 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    local image_ref=${1:-$(docker_image_for_source "$(detect_docker_image_source)")}
+    local version=$(docker manifest inspect "$image_ref" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     if [ -n "$version" ]; then
         echo "$version"
     else
@@ -417,8 +472,13 @@ get_latest_version_npm() {
 }
 
 upgrade_docker_impl() {
+    local image_source
+    image_source=$(detect_docker_image_source)
+    local image_ref
+    image_ref=$(docker_image_for_source "$image_source")
+
     print_info "正在拉取最新镜像..."
-    if docker pull myservers/my_servers; then
+    if docker pull "$image_ref"; then
         print_success "镜像拉取成功"
     else
         print_error "镜像拉取失败，请检查网络连接"
@@ -451,11 +511,11 @@ upgrade_docker_impl() {
         if [ "$platform" = "linux" ]; then
             echo "    docker run -d --name myservers --network host --restart always \\"
             echo "      --privileged -v ~/.myservers:/root/.myservers \\"
-            echo "      myservers/my_servers ./app -k 你的密钥"
+            echo "      ${image_ref} ./app -k 你的密钥"
         else
             echo "    docker run -d --name myservers --restart always \\"
             echo "      --privileged -p ${http_port}:${http_port} -v ~/.myservers:/root/.myservers \\"
-            echo "      myservers/my_servers ./app -k 你的密钥 -p ${http_port}"
+            echo "      ${image_ref} ./app -k 你的密钥 -p ${http_port}"
         fi
         echo ""
         return 0
@@ -468,12 +528,12 @@ upgrade_docker_impl() {
     fi
 
     local docker_command
-    docker_command=$(docker_run_command "$data_dir" "$secret_key" "$http_port" "$([ ${#docker_sock_args[@]} -gt 0 ] && echo true || echo false)" "$platform")
+    docker_command=$(docker_run_command "$data_dir" "$secret_key" "$http_port" "$([ ${#docker_sock_args[@]} -gt 0 ] && echo true || echo false)" "$platform" "$image_ref")
     eval "$docker_command"
     
     print_success "Docker 升级完成!"
     echo ""
-    echo "  新版本: $(get_current_version_docker)"
+    echo "  新版本: $(get_current_version_docker "$image_ref")"
     echo ""
     echo "  配置文件已保留在: $data_dir/config/config.yaml"
     echo ""
@@ -849,6 +909,10 @@ install_docker() {
 
     local http_port="$default_port"
     local secret_key="$default_key"
+    local image_source
+    image_source=$(choose_docker_image_source)
+    local image_ref
+    image_ref=$(docker_image_for_source "$image_source")
 
     printf '%b\n' "${BOLD}请配置安装参数（直接回车使用默认值）:${RESET}\n"
 
@@ -906,6 +970,7 @@ install_docker() {
     echo "  HTTP 端口: $http_port"
     echo "  密钥: $secret_key"
     echo "  Docker Socket: $([ "$map_docker_socket" = "true" ] && echo 已映射 || echo 未映射)"
+    echo "  镜像源: $([ "$image_source" = "1panel" ] && echo docker.1panel.live || echo Docker\ Hub)"
     echo ""
     echo "  完整 docker run 命令:"
     echo "    $docker_command"
@@ -921,11 +986,11 @@ install_docker() {
 
     print_info "检测 Docker 镜像..."
 
-    if docker images myservers/my_servers &>/dev/null; then
+    if docker images "$image_ref" &>/dev/null; then
         print_success "镜像已存在"
     else
         print_info "正在拉取镜像..."
-        if docker pull myservers/my_servers; then
+        if docker pull "$image_ref"; then
             print_success "镜像拉取成功"
         else
             print_error "镜像拉取失败，请检查网络连接"
@@ -1132,15 +1197,21 @@ show_help() {
     echo ""
 
     printf '%b\n' "${BOLD}方式二: Docker 安装${RESET}"
-    echo "  适合: Linux 上想要快速部署、不想关心依赖的用户"
-    echo "  优点: 隔离性好，适合容器化环境"
-    echo "  限制: 当前安装向导中的 Docker 方案依赖 Linux 的 host 网络模式"
+    echo "  适合: 想要快速部署、不想关心本机依赖的用户"
+    echo "  优点: 隔离性好，支持在安装时选择官方源或 docker.1panel.live 镜像源"
+    echo "  限制: Linux 使用 host 网络模式；macOS 会自动切到端口映射兼容模式"
     echo ""
-    echo "  命令:"
+    echo "  Docker Hub 示例:"
     printf '%b\n' "    ${CYAN}docker run -d --name myservers --network host --restart always \\${RESET}"
     printf '%b\n' "    ${CYAN}  --privileged -v ~/.myservers:/root/.myservers \\${RESET}"
     printf '%b\n' "    ${CYAN}  -v /var/run/docker.sock:/var/run/docker.sock \\${RESET}"
     printf '%b\n' "    ${CYAN}  myservers/my_servers ./app -k 你的密钥${RESET}"
+    echo ""
+    echo "  1Panel 镜像源示例:"
+    printf '%b\n' "    ${CYAN}docker run -d --name myservers --network host --restart always \\${RESET}"
+    printf '%b\n' "    ${CYAN}  --privileged -v ~/.myservers:/root/.myservers \\${RESET}"
+    printf '%b\n' "    ${CYAN}  -v /var/run/docker.sock:/var/run/docker.sock \\${RESET}"
+    printf '%b\n' "    ${CYAN}  docker.1panel.live/myservers/my_servers ./app -k 你的密钥${RESET}"
     echo ""
 
     printf '%b\n' "${YELLOW}提示: /pair 页面现在需要先输入 6 位配对码后才会显示二维码；局域网内可直接发现加密配置并本地解密。${RESET}"
