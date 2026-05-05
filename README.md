@@ -7,7 +7,7 @@ MyServers 是一个面向 NAS 和家庭服务器场景的服务端管理工具�
 推荐直接使用安装脚本：
 
 ```bash
-curl -sL https://myservers-api.codelover.us.kg/install -o install.sh && chmod +x install.sh && ./install.sh
+curl -fsSL https://raw.githubusercontent.com/my-servers/myservers-doc/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
 ```
 
 安装向导会自动检测当前环境，并引导你选择：
