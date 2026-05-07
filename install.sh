@@ -1512,7 +1512,7 @@ install_docker() {
         print_info "$(t using_default_data_dir): $default_host_dir"
     fi
 
-    local docker_command=$(docker_run_command "$host_data_dir" "$secret_key" "$http_port" "$map_docker_socket" "$permission_mode" "$platform")
+    local docker_command=$(docker_run_command "$host_data_dir" "$secret_key" "$http_port" "$map_docker_socket" "$permission_mode" "$platform" "$image_ref")
     local docker_show_config=$(docker_show_config_command "$host_data_dir" "$secret_key" "$http_port" "$map_docker_socket")
 
     echo ""
