@@ -28,6 +28,12 @@ t() {
         *:select_language) echo "选择安装语言" ;;
         en:language_choice_prompt) echo "  Enter choice [1-2, default 1]: " ;;
         *:language_choice_prompt) echo "  请输入选项 [1-2，默认1]: " ;;
+        en:current_language) echo "Current language" ;;
+        *:current_language) echo "当前语言" ;;
+        en:language_zh) echo "中文" ;;
+        *:language_zh) echo "中文" ;;
+        en:language_en) echo "English" ;;
+        *:language_en) echo "English" ;;
         en:docker_installed_running) echo "Docker is installed and running" ;;
         *:docker_installed_running) echo "Docker 已安装并正常运行" ;;
         en:docker_installed_not_running) echo "Docker is installed but not running. Please start Docker first." ;;
@@ -70,6 +76,8 @@ t() {
         *:docker_permission_full_warning) echo "你选择了完整管理权限，这会给予容器更高的宿主机访问能力。" ;;
         en:docker_image_source) echo "Choose Docker image source:" ;;
         *:docker_image_source) echo "请选择 Docker 镜像源:" ;;
+        en:docker_image_source_prompt) echo "  Enter choice [1-2, default 1]: " ;;
+        *:docker_image_source_prompt) echo "  请输入选项 [1-2，默认1]: " ;;
         en:use_existing_config) echo "  Reuse the existing config? [Y/n]: " ;;
         *:use_existing_config) echo "  是否使用已有配置? [Y/n]: " ;;
         en:using_existing_config) echo "Using existing config" ;;
@@ -242,6 +250,8 @@ t() {
         *:back) echo "返回" ;;
         en:choose_1_4) echo "  Enter choice [1-4]: " ;;
         *:choose_1_4) echo "  请输入选项 [1-4]: " ;;
+        en:choose_1_3) echo "  Enter choice [1-3]: " ;;
+        *:choose_1_3) echo "  请输入选项 [1-3]: " ;;
         en:docker_unavailable) echo "Docker is unavailable" ;;
         *:docker_unavailable) echo "Docker 不可用" ;;
         en:npm_unavailable) echo "npm is unavailable" ;;
@@ -342,10 +352,14 @@ t() {
         *:view_help_menu) echo "查看 [1]/[2] 安装方式说明" ;;
         en:check_upgrade_menu) echo "Check updates / upgrade" ;;
         *:check_upgrade_menu) echo "检查更新/升级" ;;
+        en:uninstall_menu) echo "Uninstall" ;;
+        *:uninstall_menu) echo "卸载" ;;
+        en:switch_language_menu) echo "Switch language" ;;
+        *:switch_language_menu) echo "切换语言" ;;
         en:exit_label) echo "Exit" ;;
         *:exit_label) echo "退出" ;;
-        en:choose_1_5) echo "  Enter choice [1-5]: " ;;
-        *:choose_1_5) echo "  请输入选项 [1-5]: " ;;
+        en:choose_0_6) echo "  Enter choice [0-6]: " ;;
+        *:choose_0_6) echo "  请输入选项 [0-6]: " ;;
         en:npm_missing_install_node) echo "npm is unavailable. Please install Node.js first." ;;
         *:npm_missing_install_node) echo "npm 不可用，请先安装 Node.js" ;;
         en:node_install_ref) echo "  Node.js install guide: https://nodejs.org/" ;;
@@ -362,6 +376,50 @@ t() {
         *:enter_to_continue) echo "  按回车继续..." ;;
         en:enter_to_return) echo "  Press Enter to return..." ;;
         *:enter_to_return) echo "  按回车返回..." ;;
+        en:uninstall_title) echo "Uninstall" ;;
+        *:uninstall_title) echo "卸载" ;;
+        en:choose_uninstall_method) echo "Choose what to uninstall:" ;;
+        *:choose_uninstall_method) echo "请选择要卸载的方式:" ;;
+        en:docker_uninstall_label) echo "Docker uninstall" ;;
+        *:docker_uninstall_label) echo "Docker 卸载" ;;
+        en:npm_uninstall_label) echo "npm uninstall" ;;
+        *:npm_uninstall_label) echo "npm 卸载" ;;
+        en:docker_uninstall_missing) echo "Docker uninstall (not detected)" ;;
+        *:docker_uninstall_missing) echo "Docker 卸载 (未检测到)" ;;
+        en:npm_uninstall_missing) echo "npm uninstall (not detected)" ;;
+        *:npm_uninstall_missing) echo "npm 卸载 (未检测到)" ;;
+        en:keep_data_prompt) echo "  Keep ~/.myservers data? [Y/n]: " ;;
+        *:keep_data_prompt) echo "  是否保留 ~/.myservers 数据? [Y/n]: " ;;
+        en:remove_data_notice) echo "Data removal will delete ~/.myservers permanently." ;;
+        *:remove_data_notice) echo "删除数据将永久移除 ~/.myservers 目录。" ;;
+        en:data_kept) echo "Data directory was kept" ;;
+        *:data_kept) echo "已保留数据目录" ;;
+        en:data_removed) echo "Data directory was removed" ;;
+        *:data_removed) echo "已删除数据目录" ;;
+        en:confirm_uninstall_prompt) echo "  Confirm uninstall? [Y/n]: " ;;
+        *:confirm_uninstall_prompt) echo "  确认卸载? [Y/n]: " ;;
+        en:stopping_docker_container) echo "Stopping and removing container..." ;;
+        *:stopping_docker_container) echo "正在停止并删除容器..." ;;
+        en:removing_docker_image) echo "Removing Docker images if present..." ;;
+        *:removing_docker_image) echo "正在删除 Docker 镜像（如果存在）..." ;;
+        en:docker_uninstall_done) echo "Docker uninstall complete" ;;
+        *:docker_uninstall_done) echo "Docker 卸载完成" ;;
+        en:docker_install_not_found) echo "Docker installation was not detected." ;;
+        *:docker_install_not_found) echo "未检测到 Docker 安装。" ;;
+        en:stopping_service_before_uninstall) echo "Stopping running service if present..." ;;
+        *:stopping_service_before_uninstall) echo "正在停止运行中的服务（如果存在）..." ;;
+        en:npm_uninstall_start) echo "Uninstalling npm package..." ;;
+        *:npm_uninstall_start) echo "正在卸载 npm 包..." ;;
+        en:npm_uninstall_done) echo "npm uninstall complete" ;;
+        *:npm_uninstall_done) echo "npm 卸载完成" ;;
+        en:npm_install_not_found) echo "npm installation was not detected." ;;
+        *:npm_install_not_found) echo "未检测到 npm 安装。" ;;
+        en:uninstall_cancelled) echo "Uninstall cancelled" ;;
+        *:uninstall_cancelled) echo "卸载已取消" ;;
+        en:language_updated) echo "Language updated" ;;
+        *:language_updated) echo "语言已切换" ;;
+        en:uninstall_failed) echo "Uninstall failed" ;;
+        *:uninstall_failed) echo "卸载失败" ;;
         *) echo "$key" ;;
     esac
 }
@@ -384,6 +442,19 @@ choose_language() {
             LANGUAGE="zh"
             ;;
     esac
+}
+
+change_language() {
+    choose_language
+    print_success "$(t language_updated): $(current_language_label)"
+}
+
+current_language_label() {
+    if [ "$LANGUAGE" = "en" ]; then
+        t language_en
+    else
+        t language_zh
+    fi
 }
 
 print_header() {
@@ -658,6 +729,47 @@ get_default_data_dir() {
     fi
 }
 
+is_docker_install_detected() {
+    if ! check_command docker || ! docker info &>/dev/null 2>&1; then
+        return 1
+    fi
+
+    if docker inspect myservers >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if docker images myservers/my_servers --format "{{.Repository}}" 2>/dev/null | head -1 | grep -q .; then
+        return 0
+    fi
+
+    if docker images docker.1panel.live/myservers/my_servers --format "{{.Repository}}" 2>/dev/null | head -1 | grep -q .; then
+        return 0
+    fi
+
+    return 1
+}
+
+is_npm_install_detected() {
+    check_command npm && npm list -g @my-servers/myservers --depth=0 >/dev/null 2>&1
+}
+
+maybe_remove_data_dir() {
+    local data_dir
+    data_dir=$(get_default_data_dir)
+
+    read -p "$(t keep_data_prompt)" keep_data
+    keep_data=${keep_data:-Y}
+
+    if [[ "$keep_data" =~ ^[Yy]$ ]]; then
+        print_info "$(t data_kept): $data_dir"
+        return 0
+    fi
+
+    print_warning "$(t remove_data_notice)"
+    rm -rf "$data_dir"
+    print_success "$(t data_removed): $data_dir"
+}
+
 generate_secret_key() {
     if command -v openssl &> /dev/null; then
         openssl rand -hex 16
@@ -856,12 +968,12 @@ choose_docker_image_source() {
         printf '%s\n' "    [1] $(t docker_hub)" >&2
         printf '%s\n' "    [2] $(t panel_default)" >&2
         printf '\n' >&2
-        read -p "$(t docker_permission_prompt)" source_choice
+        read -p "$(t docker_image_source_prompt)" source_choice
     else
         printf '%s\n' "    [1] $(t docker_hub_default)" >&2
         printf '%s\n' "    [2] docker.1panel.live" >&2
         printf '\n' >&2
-        read -p "$(t docker_permission_prompt)" source_choice
+        read -p "$(t docker_image_source_prompt)" source_choice
     fi
     case "$source_choice" in
         2)
@@ -1133,7 +1245,7 @@ check_upgrade() {
     echo "  [4] $(t back)"
     echo ""
     
-    read -p "$(t choose_1_4)" choice
+    read -p "$(t choose_1_3)" choice
     
     case $choice in
         1)
@@ -1735,6 +1847,140 @@ install_npm() {
     esac
 }
 
+uninstall_docker() {
+    clear_screen
+    print_step "$(t docker_uninstall_label)"
+
+    if ! is_docker_install_detected; then
+        print_error "$(t docker_install_not_found)"
+        echo ""
+        prompt_enter_to_return
+        return 1
+    fi
+
+    read -p "$(t confirm_uninstall_prompt)" confirm
+    confirm=${confirm:-Y}
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        print_info "$(t uninstall_cancelled)"
+        echo ""
+        prompt_enter_to_return
+        return 1
+    fi
+
+    print_info "$(t stopping_docker_container)"
+    docker rm -f myservers 2>/dev/null || true
+
+    print_info "$(t removing_docker_image)"
+    docker rmi myservers/my_servers 2>/dev/null || true
+    docker rmi docker.1panel.live/myservers/my_servers 2>/dev/null || true
+
+    maybe_remove_data_dir
+
+    echo ""
+    print_success "$(t docker_uninstall_done)"
+    echo ""
+    prompt_enter_to_return
+}
+
+uninstall_npm() {
+    clear_screen
+    print_step "$(t npm_uninstall_label)"
+
+    if ! is_npm_install_detected; then
+        print_error "$(t npm_install_not_found)"
+        echo ""
+        prompt_enter_to_return
+        return 1
+    fi
+
+    read -p "$(t confirm_uninstall_prompt)" confirm
+    confirm=${confirm:-Y}
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        print_info "$(t uninstall_cancelled)"
+        echo ""
+        prompt_enter_to_return
+        return 1
+    fi
+
+    print_info "$(t stopping_service_before_uninstall)"
+    pkill -f "myservers" 2>/dev/null || true
+
+    print_info "$(t npm_uninstall_start)"
+    if npm uninstall -g @my-servers/myservers; then
+        print_success "$(t npm_uninstall_done)"
+    else
+        print_error "$(t uninstall_failed)"
+        echo ""
+        prompt_enter_to_return
+        return 1
+    fi
+
+    maybe_remove_data_dir
+
+    echo ""
+    prompt_enter_to_return
+}
+
+uninstall_menu() {
+    clear_screen
+    print_step "$(t uninstall_title)"
+
+    local has_docker=false
+    local has_npm=false
+
+    if is_docker_install_detected; then
+        has_docker=true
+    fi
+
+    if is_npm_install_detected; then
+        has_npm=true
+    fi
+
+    printf '%b\n' "${BOLD}$(t choose_uninstall_method)${RESET}"
+    echo ""
+
+    if $has_docker; then
+        echo "  [1] $(t docker_uninstall_label)"
+    else
+        echo "  [1] $(t docker_uninstall_missing)"
+    fi
+
+    if $has_npm; then
+        echo "  [2] $(t npm_uninstall_label)"
+    else
+        echo "  [2] $(t npm_uninstall_missing)"
+    fi
+
+    echo "  [3] $(t back)"
+    echo ""
+
+    read -p "$(t choose_1_3)" choice
+
+    case $choice in
+        1)
+            if $has_docker; then
+                uninstall_docker
+            else
+                print_error "$(t docker_install_not_found)"
+                echo ""
+                prompt_enter_to_return
+            fi
+            ;;
+        2)
+            if $has_npm; then
+                uninstall_npm
+            else
+                print_error "$(t npm_install_not_found)"
+                echo ""
+                prompt_enter_to_return
+            fi
+            ;;
+        *)
+            return 0
+            ;;
+    esac
+}
+
 show_help() {
     clear_screen
     print_step "$(t help_title)"
@@ -1771,7 +2017,6 @@ show_help() {
 }
 
 main() {
-    choose_language
     print_header
 
     printf '%b\n' "${BOLD}$(t main_welcome)${RESET}"
@@ -1802,6 +2047,8 @@ main() {
         print_step "$(t choose_install_method)"
 
         printf '%b\n' "${BOLD}$(t please_choose)${RESET}\n"
+        echo "  $(t current_language): $(current_language_label)"
+        echo ""
 
         if $has_npm; then
             echo "  [1] $(t npm_install_recommended)"
@@ -1820,10 +2067,12 @@ main() {
 
         echo "  [3] $(t view_help_menu)"
         echo "  [4] $(t check_upgrade_menu)"
-        echo "  [5] $(t exit_label)"
+        echo "  [5] $(t uninstall_menu)"
+        echo "  [6] $(t switch_language_menu)"
+        echo "  [0] $(t exit_label)"
         echo ""
 
-        read -p "$(t choose_1_5)" choice
+        read -p "$(t choose_0_6)" choice
 
         case $choice in
             1)
@@ -1855,7 +2104,13 @@ main() {
             4)
                 check_upgrade
                 ;;
-            5|q|Q)
+            5)
+                uninstall_menu
+                ;;
+            6)
+                change_language
+                ;;
+            0|q|Q)
                 echo ""
                 echo "$(t goodbye)"
                 echo ""
