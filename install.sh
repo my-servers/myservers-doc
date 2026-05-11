@@ -1066,33 +1066,45 @@ compare_versions() {
     echo "equal"
 }
 
-get_current_version_docker() {
-    local image_ref=${1:-$(docker_image_for_source "$(detect_docker_image_source)")}
-    local version=$(docker images "$image_ref" --format "{{.Tag}}" 2>/dev/null | head -1)
-    if [ -n "$version" ]; then
-        echo "$version"
+compare_image_ids() {
+    local id1=$1
+    local id2=$2
+    
+    if [ "$id1" = "$id2" ]; then
+        echo "equal"
     else
-        echo "unknown"
+        echo "older"
+    fi
+}
+
+get_current_version_docker() {
+    local status=$(docker inspect -f '{{.State.Status}}' myservers 2>/dev/null || true)
+    if [ "$status" = "running" ]; then
+        docker inspect -f '{{.Image}}' myservers 2>/dev/null || true
+    else
+        echo "not_installed"
     fi
 }
 
 get_latest_version_docker() {
     local image_ref=${1:-$(docker_image_for_source "$(detect_docker_image_source)")}
-    local version=$(docker manifest inspect "$image_ref" 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-    if [ -n "$version" ]; then
-        echo "$version"
-    else
-        echo ""
+    
+    local pull_output
+    pull_output=$(timeout 120 docker pull "$image_ref" 2>&1) || return 1
+    
+    local latest_id=$(docker images "$image_ref" --format "{{.Id}}" 2>/dev/null | head -1)
+    if [ -n "$latest_id" ]; then
+        echo "$latest_id"
     fi
 }
 
 get_current_version_npm() {
-    if check_command myservers; then
-        local version=$(myservers -op=version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    if check_command npm; then
+        local version=$(npm list -g @my-servers/myservers --depth=0 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
         if [ -n "$version" ]; then
             echo "$version"
         else
-            echo "unknown"
+            echo "not_installed"
         fi
     else
         echo "not_installed"
@@ -1285,40 +1297,15 @@ check_upgrade_docker() {
     fi
     
     local current=$(get_current_version_docker)
-    local latest=$(get_latest_version_docker)
-    
-    echo "  $(t current_version): $current"
-    echo "  $(t latest_version): $latest"
+    local current_short=$(echo "$current" | cut -c1-20)
+    echo "  $(t current_version): $current_short"
     echo ""
     
-    if [ "$latest" = "" ]; then
-        print_error "$(t latest_version_fetch_failed)"
-        echo ""
-        prompt_enter_to_return
-        return 1
-    fi
-    
-    if [ "$current" = "unknown" ]; then
+    if [ "$current" = "not_installed" ]; then
         print_warning "$(t image_not_installed)"
         echo ""
         prompt_enter_to_return
-        return 1
-    fi
-    
-    local result=$(compare_versions "$current" "$latest")
-    
-    if [ "$result" = "equal" ]; then
-        print_success "$(t already_latest) ($current)"
-        echo ""
-        prompt_enter_to_return
         return 0
-    elif [ "$result" = "older" ]; then
-        print_warning "$(t new_version_found): $current -> $latest"
-    else
-        print_error "$(t version_compare_failed)"
-        echo ""
-        prompt_enter_to_return
-        return 1
     fi
     
     echo ""
@@ -1408,25 +1395,20 @@ check_upgrade_all() {
         printf '%b\n' "${BOLD}Docker:${RESET}"
         
         local current=$(get_current_version_docker)
-        local latest=$(get_latest_version_docker)
+        local current_short=$(echo "$current" | cut -c1-20)
         
-        echo "  $(t summary_current_latest): $current -> $(t latest_version) $latest"
-        
-        if [ "$latest" != "" ] && [ "$current" != "unknown" ]; then
-            local result=$(compare_versions "$current" "$latest")
-            if [ "$result" = "older" ]; then
-                printf '%b\n' "  ${YELLOW}✓ $(t summary_available)${RESET}"
-                upgrade_needed=true
-            else
-                printf '%b\n' "  ${GREEN}✓ $(t summary_latest)${RESET}"
-            fi
-        elif [ "$current" = "unknown" ]; then
+        if [ "$current" = "not_installed" ]; then
+            echo "  $(t summary_current_latest): -"
             printf '%b\n' "  ${YELLOW}⚠ $(t not_installed)${RESET}"
+            upgrade_needed=true
+        else
+            echo "  $(t summary_current_latest): $current_short (running)"
+            printf '%b\n' "  ${GREEN}✓ $(t summary_latest)${RESET}"
         fi
         echo ""
     fi
     
-    if check_command npm && check_command myservers; then
+    if check_command npm; then
         has_npm=true
         printf '%b\n' "${BOLD}npm:${RESET}"
         
@@ -1435,7 +1417,7 @@ check_upgrade_all() {
         
         echo "  $(t summary_current_latest): $current -> $(t latest_version) $latest"
         
-        if [ "$latest" != "" ] && [ "$current" != "unknown" ]; then
+        if [ "$latest" != "" ] && [ "$current" != "not_installed" ]; then
             local result=$(compare_versions "$current" "$latest")
             if [ "$result" = "older" ]; then
                 printf '%b\n' "  ${YELLOW}✓ $(t summary_available)${RESET}"
