@@ -1201,7 +1201,7 @@ upgrade_docker_impl() {
 
 upgrade_npm_impl() {
     print_info "$(t upgrade_npm_start)"
-    if npm install -g @my-servers/myservers; then
+    if npm install -g @my-servers/myservers@latest; then
         print_success "$(t upgrade_success)"
     else
         print_error "$(t upgrade_failed)"
@@ -1755,7 +1755,7 @@ install_npm() {
     print_info "$(t npm_install_start)"
     echo ""
 
-    if npm install -g @my-servers/myservers; then
+    if npm install -g @my-servers/myservers@latest; then
         print_success "$(t npm_install_success)"
     else
         print_error "$(t npm_install_failed)"
@@ -1972,7 +1972,7 @@ show_help() {
     echo "  $(t recommended_reason_npm)"
     echo ""
     echo "  $(t command_label)"
-    printf '%b\n' "    ${CYAN}npm install -g @my-servers/myservers${RESET}"
+    printf '%b\n' "    ${CYAN}npm install -g @my-servers/myservers@latest${RESET}"
     printf '%b\n' "    ${CYAN}myservers -k $(t your_secret_key)${RESET}"
     echo ""
 

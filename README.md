@@ -36,7 +36,7 @@ bash --version
 适合绝大多数用户，配置简单，后续升级方便。
 
 ```bash
-npm install -g @my-servers/myservers
+npm install -g @my-servers/myservers@latest
 ```
 
 安装完成后，可以按安装向导提示启动，或者手动启动：
@@ -97,7 +97,7 @@ pkill myservers
 如果你使用的是 `npm` 安装，可以直接执行：
 
 ```bash
-npm install -g @my-servers/myservers
+npm install -g @my-servers/myservers@latest
 ```
 
 然后重新启动服务即可。
