@@ -36,7 +36,7 @@ bash --version
 适合绝大多数用户，配置简单，后续升级方便。
 
 ```bash
-npm install -g @my-servers/myservers@latest
+npm install -g @my-servers/myservers@latest --registry=https://registry.npmjs.org
 ```
 
 安装完成后，可以按安装向导提示启动，或者手动启动：
@@ -97,7 +97,7 @@ pkill myservers
 如果你使用的是 `npm` 安装，可以直接执行：
 
 ```bash
-npm install -g @my-servers/myservers@latest
+npm install -g @my-servers/myservers@latest --registry=https://registry.npmjs.org
 ```
 
 然后重新启动服务即可。
@@ -111,6 +111,12 @@ npm install -g @my-servers/myservers@latest
 ```bash
 head -20 install.sh
 bash --version
+```
+
+如果 npm 报 `No matching version found for @my-servers/myservers@latest`，通常是当前 npm 镜像源没有同步到最新版本。请使用官方 npm 源重试：
+
+```bash
+npm install -g @my-servers/myservers@latest --registry=https://registry.npmjs.org
 ```
 
 ### 2. App 无法发现服务端

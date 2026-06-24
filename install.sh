@@ -18,6 +18,9 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 LANGUAGE="zh"
+MYSERVERS_API_BASE="${MYSERVERS_API_BASE:-https://api.myservers.plus}"
+MYSERVERS_NPM_PACKAGE="${MYSERVERS_NPM_PACKAGE:-@my-servers/myservers}"
+MYSERVERS_NPM_REGISTRY="${MYSERVERS_NPM_REGISTRY:-https://registry.npmjs.org}"
 
 t() {
     local key=$1
@@ -192,10 +195,16 @@ t() {
         *:invalid_option_service_not_started) echo "无效选项，服务未启动" ;;
         en:npm_install_start) echo "Installing npm package..." ;;
         *:npm_install_start) echo "开始安装 npm 包..." ;;
+        en:npm_package) echo "npm package" ;;
+        *:npm_package) echo "npm 包" ;;
+        en:npm_registry) echo "npm registry" ;;
+        *:npm_registry) echo "npm 源" ;;
         en:npm_install_success) echo "npm package installed successfully" ;;
         *:npm_install_success) echo "npm 包安装成功" ;;
         en:npm_install_failed) echo "npm package installation failed" ;;
         *:npm_install_failed) echo "npm 包安装失败" ;;
+        en:npm_registry_hint) echo "If this fails, check access to the official npm registry or set MYSERVERS_NPM_REGISTRY." ;;
+        *:npm_registry_hint) echo "如果失败，请检查是否能访问官方 npm 源，或通过 MYSERVERS_NPM_REGISTRY 指定源。" ;;
         en:help_title) echo "Installation methods" ;;
         *:help_title) echo "安装方式说明" ;;
         en:method_npm) echo "Method 1: npm install (recommended)" ;;
@@ -672,6 +681,80 @@ check_node() {
     fi
 }
 
+fetch_server_info() {
+    local url="${MYSERVERS_API_BASE%/}/server_info"
+    if check_command curl; then
+        curl -fsSL --connect-timeout 5 --max-time 10 "$url" 2>/dev/null || true
+        return 0
+    fi
+
+    if check_command wget; then
+        wget -qO- --timeout=10 "$url" 2>/dev/null || true
+        return 0
+    fi
+
+    return 1
+}
+
+extract_server_info_version() {
+    node -e 'const fs = require("fs"); try { const input = fs.readFileSync(0, "utf8"); const version = JSON.parse(input).version; if (typeof version === "string" && /^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$/.test(version)) process.stdout.write(version); } catch (_) {}' 2>/dev/null
+}
+
+get_release_version_from_api() {
+    local data=""
+    local version=""
+
+    data=$(fetch_server_info || true)
+    if [ -z "$data" ]; then
+        return 1
+    fi
+
+    version=$(printf '%s' "$data" | extract_server_info_version || true)
+    if [ -z "$version" ]; then
+        return 1
+    fi
+
+    printf '%s\n' "$version"
+}
+
+resolve_npm_version() {
+    local version="${MYSERVERS_VERSION:-}"
+
+    if [ -z "$version" ]; then
+        version=$(get_release_version_from_api || true)
+    fi
+
+    if [ -z "$version" ]; then
+        version="latest"
+    fi
+
+    printf '%s\n' "$version"
+}
+
+get_npm_registry() {
+    printf '%s\n' "$MYSERVERS_NPM_REGISTRY"
+}
+
+get_npm_package_spec() {
+    local version=""
+    version=$(resolve_npm_version)
+    printf '%s@%s\n' "$MYSERVERS_NPM_PACKAGE" "$version"
+}
+
+install_npm_package_global() {
+    local spec=""
+    local registry=""
+
+    spec=$(get_npm_package_spec)
+    registry=$(get_npm_registry)
+
+    echo "  $(t npm_package): $spec"
+    echo "  $(t npm_registry): $registry"
+    echo ""
+
+    npm install -g "$spec" --registry="$registry"
+}
+
 has_docker_socket() {
     [ -S /var/run/docker.sock ]
 }
@@ -1112,7 +1195,15 @@ get_current_version_npm() {
 }
 
 get_latest_version_npm() {
-    local version=$(npm view @my-servers/myservers version 2>/dev/null)
+    local version="${MYSERVERS_VERSION:-}"
+    if [ -z "$version" ]; then
+        version=$(get_release_version_from_api || true)
+    fi
+
+    if [ -z "$version" ]; then
+        version=$(npm view "$MYSERVERS_NPM_PACKAGE" version --registry="$(get_npm_registry)" 2>/dev/null || true)
+    fi
+
     if [ -n "$version" ]; then
         echo "$version"
     else
@@ -1201,10 +1292,11 @@ upgrade_docker_impl() {
 
 upgrade_npm_impl() {
     print_info "$(t upgrade_npm_start)"
-    if npm install -g @my-servers/myservers@latest; then
+    if install_npm_package_global; then
         print_success "$(t upgrade_success)"
     else
         print_error "$(t upgrade_failed)"
+        echo "  $(t npm_registry_hint)"
         return 1
     fi
     
@@ -1755,10 +1847,11 @@ install_npm() {
     print_info "$(t npm_install_start)"
     echo ""
 
-    if npm install -g @my-servers/myservers@latest; then
+    if install_npm_package_global; then
         print_success "$(t npm_install_success)"
     else
         print_error "$(t npm_install_failed)"
+        echo "  $(t npm_registry_hint)"
         return 1
     fi
 
@@ -1972,7 +2065,7 @@ show_help() {
     echo "  $(t recommended_reason_npm)"
     echo ""
     echo "  $(t command_label)"
-    printf '%b\n' "    ${CYAN}npm install -g @my-servers/myservers@latest${RESET}"
+    printf '%b\n' "    ${CYAN}npm install -g ${MYSERVERS_NPM_PACKAGE}@latest --registry=$(get_npm_registry)${RESET}"
     printf '%b\n' "    ${CYAN}myservers -k $(t your_secret_key)${RESET}"
     echo ""
 
